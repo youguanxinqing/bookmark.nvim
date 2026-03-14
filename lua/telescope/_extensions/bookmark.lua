@@ -7,5 +7,7 @@ end
 return telescope.register_extension({
     exports = {
         filemarks = require("telescope._extensions.filemarks"),
+        bookmarks = require("telescope._extensions.buffer_bookmarks"),
+        project_bookmarks = require("telescope._extensions.project_bookmarks"),
     },
 })

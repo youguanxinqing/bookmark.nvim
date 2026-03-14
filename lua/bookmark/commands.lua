@@ -29,4 +29,6 @@ vim.cmd([[
   command! FilemarkList lua require'bookmark.action'.list_file_marks_qf()
   command! FilemarkNext lua require'bookmark.action'.next_file()
   command! FilemarkPrev lua require'bookmark.action'.previous_file()
+  command! BookmarkAnnotate lua require'bookmark.action'.annotate()
+  command! BookmarkListProject lua require'bookmark.action'.list_project_qf()
 ]])

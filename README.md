@@ -28,6 +28,8 @@ BookmarkToggle
 BookmarkNext
 BookmarkPrev
 BookmarkList
+BookmarkListProject
+BookmarkAnnotate
 BookmarkClear
 BookmarkClearProject
 
@@ -36,6 +38,10 @@ FilemarkNext
 FilemarkPrev
 FilemarkList
 ```
+
+- `BookmarkList` — quickfix list of bookmarks in current buffer
+- `BookmarkListProject` — quickfix list of all bookmarks in the project
+- `BookmarkAnnotate` — add or edit an annotation on the bookmarked line (shown as virtual text)
 
 ## Telescope
 
@@ -49,7 +55,13 @@ Then call it with:
 
 ```
 :Telescope bookmark filemarks
+:Telescope bookmark bookmarks
+:Telescope bookmark project_bookmarks
 ```
+
+- `filemarks` — browse file marks in the project
+- `bookmarks` — browse bookmarks in the current buffer
+- `project_bookmarks` — browse all bookmarks across the project
 
 ## Database
 
@@ -57,14 +69,7 @@ The sqlite db is located at `~/.local/share/nvim/bookmark_db`
 
 ## TODO
 
-- telescope search through buffer bookmarks
-
 - fix bookmark and filemark on same line
-
-- annotate bookmarks
-
-- quickfix list of all bookmarks in project
-- telescope search through all bookmarks
 
 - associate marks with git hash
 

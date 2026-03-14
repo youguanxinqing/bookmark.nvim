@@ -46,6 +46,7 @@ vim.api.nvim_create_autocmd({ "BufWritePost" }, {
 
 local restore_bookmarks = function()
   local bookmarks_buf = bookmarks.get_all_file()
+  local ns = vim.api.nvim_create_namespace("bookmark_annotations")
   for _, bookmark in ipairs(bookmarks_buf) do
     vim.fn.sign_place(
       bookmark.sign_id,
@@ -54,6 +55,11 @@ local restore_bookmarks = function()
       vim.api.nvim_buf_get_name(0),
       { lnum = bookmark.lnum }
     )
+    if bookmark.annotation and bookmark.annotation ~= "" then
+      vim.api.nvim_buf_set_extmark(0, ns, bookmark.lnum - 1, 0, {
+        virt_text = {{ "  " .. bookmark.annotation, "Comment" }}, virt_text_pos = "eol"
+      })
+    end
   end
 end
 

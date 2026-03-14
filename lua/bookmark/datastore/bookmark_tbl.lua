@@ -12,6 +12,7 @@ M.bookmarks = tbl("bookmarks", {
 	lnum = { "number", required = true, unique = false },
 	sign_id = { "number", unique = false, required = true },
 	sign = { "text", required = true },
+	annotation = { "text", required = false },
 	files = {
 		type = "integer",
 		reference = "files.id",
@@ -20,6 +21,34 @@ M.bookmarks = tbl("bookmarks", {
 		required = true,
 	},
 })
+
+-- get full bookmark row (including annotation)
+M.get_full = function(bufnr, lnum)
+	bufnr = bufnr or vim.api.nvim_get_current_buf()
+	lnum = lnum or util.get_current_line()
+	local signs = vim.fn.sign_getplaced(bufnr, { group = "Bookmarks", lnum = lnum })
+	local bookmark = nil
+	for _, sign in ipairs(signs[1].signs) do
+		if sign.lnum == lnum then
+			bookmark = M.bookmarks:where({ sign_id = sign.id })
+		end
+	end
+	return bookmark
+end
+
+-- update annotation
+M.set_annotation = function(bookmark_id, annotation_text)
+	M.bookmarks:update({ where = { id = bookmark_id }, set = { annotation = annotation_text } })
+end
+
+-- get all bookmarks for a file by file_id
+M.get_all_by_file_id = function(file_id)
+	local result = {}
+	M.bookmarks:each({ where = { files = file_id } }, function(row)
+		table.insert(result, row)
+	end)
+	return result
+end
 
 -- get bookmark id
 M.get = function(bufnr, lnum)

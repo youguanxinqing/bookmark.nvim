@@ -210,8 +210,9 @@ function M.list_buffer_qf()
 		local bufnr = vim.fn.bufadd(path .. file.path)
 		vim.fn.bufload(bufnr)
 		local line_text = vim.api.nvim_buf_get_lines(bufnr, item.lnum - 1, item.lnum, false)[1]
-
-		table.insert(qf_list, { filename = path .. file.path, lnum = item.lnum, text = item.sign .. " " .. line_text })
+		local ann = (item.annotation and item.annotation ~= "") and ("[" .. item.annotation .. "]  ") or ""
+		local text = item.sign .. "  " .. ann .. line_text
+		table.insert(qf_list, { filename = path .. file.path, lnum = item.lnum, text = text })
 	end
 	vim.api.nvim_command("copen")
 
@@ -230,7 +231,46 @@ function M.clear_project()
 end
 
 function M.annotate()
-	print("stub")
+	local bookmark = bookmarks.get_full()
+	if bookmark == nil then print("No bookmark on current line"); return end
+	local existing = bookmark.annotation or ""
+	local annotation = vim.fn.input({ prompt = "Annotation: ", default = existing, cancelreturn = "\0CANCEL\0" })
+	if annotation == "\0CANCEL\0" then return end
+	bookmarks.set_annotation(bookmark.id, annotation)
+	local ns = vim.api.nvim_create_namespace("bookmark_annotations")
+	local bufnr = vim.api.nvim_get_current_buf()
+	local lnum0 = bookmark.lnum - 1
+	for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(bufnr, ns, {lnum0, 0}, {lnum0, -1}, {})) do
+		vim.api.nvim_buf_del_extmark(bufnr, ns, mark[1])
+	end
+	if annotation ~= "" then
+		vim.api.nvim_buf_set_extmark(bufnr, ns, lnum0, 0, {
+			virt_text = {{ "  " .. annotation, "Comment" }}, virt_text_pos = "eol"
+		})
+	end
+end
+
+function M.list_project_qf()
+	vim.fn.setqflist({}, "r")
+	local path = vim.fn.getcwd()
+	local all_files = files.get_all()
+	local qf_list = {}
+	for _, file in ipairs(all_files) do
+		local file_bookmarks = bookmarks.get_all_by_file_id(file.id)
+		for _, item in ipairs(file_bookmarks) do
+			local ok, line_text = pcall(function()
+				local bufnr = vim.fn.bufadd(path .. file.path)
+				vim.fn.bufload(bufnr)
+				return vim.api.nvim_buf_get_lines(bufnr, item.lnum - 1, item.lnum, false)[1] or ""
+			end)
+			line_text = ok and line_text or ""
+			local ann = (item.annotation and item.annotation ~= "") and ("[" .. item.annotation .. "]  ") or ""
+			local text = item.sign .. "  " .. ann .. line_text
+			table.insert(qf_list, { filename = path .. file.path, lnum = item.lnum, text = text })
+		end
+	end
+	vim.fn.setqflist(qf_list)
+	vim.api.nvim_command("copen")
 end
 
 function M.change_icon()
