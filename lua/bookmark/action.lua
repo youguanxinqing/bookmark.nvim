@@ -8,12 +8,36 @@ local projects = db.projects
 
 local M = {}
 
+local function apply_annotation(bookmark, default_text)
+	local existing = default_text ~= nil and default_text or (bookmark.annotation or "")
+	local annotation = vim.fn.input({ prompt = "Annotation: ", default = existing, cancelreturn = "\0CANCEL\0" })
+	vim.cmd("redraw")
+	vim.cmd("echo ''")
+	if annotation == "\0CANCEL\0" then return end
+	bookmarks.set_annotation(bookmark.id, annotation)
+	local ns = vim.api.nvim_create_namespace("bookmark_annotations")
+	local bufnr = vim.api.nvim_get_current_buf()
+	local lnum0 = vim.api.nvim_win_get_cursor(0)[1] - 1
+	for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(bufnr, ns, {lnum0, 0}, {lnum0, -1}, {})) do
+		vim.api.nvim_buf_del_extmark(bufnr, ns, mark[1])
+	end
+	if annotation ~= "" then
+		vim.api.nvim_buf_set_extmark(bufnr, ns, lnum0, 0, {
+			virt_text = {{ "  " .. annotation, "Comment" }}, virt_text_pos = "eol"
+		})
+	end
+end
+
 function M.toggle()
 	-- TODO: filemark should have it's own group
 	-- check if filemark on line, delete and replace with bookmark
 	local bookmark = bookmarks.get()
 	if bookmark == nil then
 		bookmarks.create()
+		local new_bookmark = bookmarks.get_full()
+		if new_bookmark then
+			apply_annotation(new_bookmark, "")
+		end
 	else
 		bookmarks.delete()
 	end
@@ -222,32 +246,26 @@ end
 function M.clear_buffer()
 	local bufnr = vim.api.nvim_get_current_buf()
 	vim.fn.sign_unplace("Bookmarks", { buffer = bufnr })
+	local ns = vim.api.nvim_create_namespace("bookmark_annotations")
+	vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
 	files.delete()
 end
 
 function M.clear_project()
 	vim.fn.sign_unplace("Bookmarks")
+	local ns = vim.api.nvim_create_namespace("bookmark_annotations")
+	for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_buf_is_loaded(bufnr) then
+			vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+		end
+	end
 	projects.delete()
 end
 
 function M.annotate()
 	local bookmark = bookmarks.get_full()
 	if bookmark == nil then print("No bookmark on current line"); return end
-	local existing = bookmark.annotation or ""
-	local annotation = vim.fn.input({ prompt = "Annotation: ", default = existing, cancelreturn = "\0CANCEL\0" })
-	if annotation == "\0CANCEL\0" then return end
-	bookmarks.set_annotation(bookmark.id, annotation)
-	local ns = vim.api.nvim_create_namespace("bookmark_annotations")
-	local bufnr = vim.api.nvim_get_current_buf()
-	local lnum0 = bookmark.lnum - 1
-	for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(bufnr, ns, {lnum0, 0}, {lnum0, -1}, {})) do
-		vim.api.nvim_buf_del_extmark(bufnr, ns, mark[1])
-	end
-	if annotation ~= "" then
-		vim.api.nvim_buf_set_extmark(bufnr, ns, lnum0, 0, {
-			virt_text = {{ "  " .. annotation, "Comment" }}, virt_text_pos = "eol"
-		})
-	end
+	apply_annotation(bookmark)
 end
 
 function M.list_project_qf()
